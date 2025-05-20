@@ -510,9 +510,19 @@
     </script>
 
     <!-- 5) wire up FriesenVentures.net/Editor: Mark Friesen when the instance appears -->
-    <script defer>
-   
-    </script>
+    <!-- 5) instantiate the engine & hook the ready event -->
+<script defer>
+  const container = document.getElementById('canvasContainer');
+  new Micropolis(container, 64, 64, { tileSize: 16 });
+  window.addEventListener('micropolis-ready', e => {
+    document.getElementById('loadingBanner').classList.remove('open');
+    document.getElementById('splash').classList.add('open');
+    const micro = e.detail;
+    document.getElementById('saveGame').disabled = false;
+    document.getElementById('loadGame').disabled = false;
+  });
+</script>
+
 
   </body>
 </html>
