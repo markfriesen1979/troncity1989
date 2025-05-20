@@ -468,10 +468,13 @@
         .forEach(e => e.setAttribute('data-hasscript','true'));
     </script>
 
-    <!-- 2) jQuery first -->
-    <script defer src="thirdparty/jquery/jquery-2.1.1.min.js"></script>
-    <!-- 3) engine next -->
-    <script defer src="src/micropolis.js"></script>
+  <!-- 2) jQuery first -->
+- <script defer src="thirdparty/jquery/jquery-2.1.1.min.js"></script>
++ <script defer src="./thirdparty/jquery/jquery-2.1.1.min.js"></script>
+
+<!-- 3) engine next -->
+- <script defer src="src/micropolis.js"></script>
++ <script defer src="./src/micropolis.js"></script>
 
     <!-- 4) wrap the constructor so we can catch the instance -->
     <script defer>
@@ -513,6 +516,3 @@
 
   </body>
 </html>
-
-
-
