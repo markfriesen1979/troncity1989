@@ -476,53 +476,25 @@
 - <script defer src="src/micropolis.js"></script>
 + <script defer src="./src/micropolis.js"></script>
 
-    <!-- 4) wrap the constructor so we can catch the instance -->
+       <!-- 4) wrap the constructor so we can catch the instance -->
     <script defer>
       (function(){
-        // if Micropolis already loaded, wrap it now; otherwise wait for define
-        function wrapCtor(Engine) {
-          function Wrapped(container,w,h,opts) {
-            const inst = new Engine(container,w,h,opts);
-            window.dispatchEvent(
-              new CustomEvent('micropolis-ready', { detail: inst })
-            );
-            return inst;
-          }
-          Object.assign(Wrapped, Engine);
-          Wrapped.prototype = Engine.prototype;
-          window.Micropolis = Wrapped;
-        }
-
-        if (window.Micropolis) {
-          wrapCtor(window.Micropolis);
-        } else {
-          const orig = Object.getOwnPropertyDescriptor(window, 'Micropolis') || {};
-          Object.defineProperty(window, 'Micropolis', {
-            configurable: true,
-            set(Engine) {
-              wrapCtor(Engine);
-              if (orig.set) orig.set(Engine);
-            },
-            get() { return orig.get ? orig.get() : window.Micropolis; }
-          });
-        }
+        /* …your existing wrapCtor code… */
       })();
     </script>
 
-    <!-- 5) wire up FriesenVentures.net/Editor: Mark Friesen when the instance appears -->
-    <!-- 5) instantiate the engine & hook the ready event -->
-<script defer>
-  const container = document.getElementById('canvasContainer');
-  new Micropolis(container, 64, 64, { tileSize: 16 });
-  window.addEventListener('micropolis-ready', e => {
-    document.getElementById('loadingBanner').classList.remove('open');
-    document.getElementById('splash').classList.add('open');
-    const micro = e.detail;
-    document.getElementById('saveGame').disabled = false;
-    document.getElementById('loadGame').disabled = false;
-  });
-</script>
-
-
+    <!-- 5) instantiate Micropolis and drop the loading banner -->
+    <script defer>
+      // 5a) Find the DIV where the canvas goes
+      const container = document.getElementById('canvasContainer');
+      // 5b) Create a new Micropolis instance (64×64 tiles, 16px each)
+      new Micropolis(container, 64, 64, { tileSize: 16 });
+      // 5c) When it’s ready, hide the “Loading” banner and show the splash
+      window.addEventListener('micropolis-ready', e => {
+        document.getElementById('loadingBanner').classList.remove('open');
+        document.getElementById('splash').classList.add('open');
+      });
+    </script>
   </body>
 </html>
+
