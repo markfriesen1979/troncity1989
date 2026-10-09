@@ -15,6 +15,15 @@ import { Position } from './position';
 import { TileSet } from './tileSet';
 import { DIRT, TILE_INVALID, WATER_HIGH, WATER_LOW, WOODS_HIGH, WOODS_LOW } from "./tileValues";
 
+var elevationColors = [
+  'rgba(91, 145, 78, 0.12)',
+  'rgba(120, 157, 74, 0.17)',
+  'rgba(155, 152, 93, 0.22)',
+  'rgba(153, 130, 105, 0.28)',
+  'rgba(151, 147, 143, 0.33)',
+  'rgba(245, 245, 245, 0.38)'
+];
+
 function GameCanvas(id, parentNode) {
   if (!(this instanceof GameCanvas))
     return new GameCanvas(id, parentNode, width, height);
@@ -502,14 +511,6 @@ GameCanvas.prototype._paintOne = function(ctx, tileVal, x, y, elevation) {
         (tileVal === DIRT || (tileVal >= WATER_LOW && tileVal <= WATER_HIGH) ||
          (tileVal >= WOODS_LOW && tileVal <= WOODS_HIGH))) {
       var elevationBand = Math.min(Math.floor(elevation / 3), 5);
-      var elevationColors = [
-        'rgba(91, 145, 78, 0.12)',
-        'rgba(120, 157, 74, 0.17)',
-        'rgba(155, 152, 93, 0.22)',
-        'rgba(153, 130, 105, 0.28)',
-        'rgba(151, 147, 143, 0.33)',
-        'rgba(245, 245, 245, 0.38)'
-      ];
       ctx.fillStyle = elevationColors[elevationBand];
       ctx.fillRect(x * this._tileSet.tileWidth, y * this._tileSet.tileWidth,
                    this._tileSet.tileWidth, this._tileSet.tileWidth);
