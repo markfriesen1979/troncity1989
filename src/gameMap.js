@@ -54,6 +54,7 @@ function GameMap(width, height, defaultValue) {
   for (var i = 0, l = width * height; i < l; i++)
     data[i] = new Tile(defaultValue);
   this._data = data;
+  this._elevation = new Array(width * height).fill(0);
 
   // Generally set externally
   this.cityCentreX = Math.floor(this.width / 2);
@@ -72,6 +73,7 @@ GameMap.prototype.save = function(saveData) {
   saveData.map = this._data.map(function(t) {
     return {value: t.getRawValue()};
   });
+  saveData.elevation = this._elevation.slice();
 };
 
 
@@ -82,6 +84,10 @@ GameMap.prototype.load = function(saveData) {
   var map = saveData.map;
   for (i = 0, l = map.length; i < l; i++)
     this.setTileValue(i % this.width, Math.floor(i / this.width), map[i].value);
+
+  var elevations = saveData.elevation || [];
+  for (i = 0, l = this._elevation.length; i < l; i++)
+    this._elevation[i] = elevations[i] === undefined ? 0 : elevations[i];
 };
 
 
@@ -160,6 +166,36 @@ GameMap.prototype.getTileFlags = function(x, y) {
 
   var tileIndex = this._calculateIndex(x, y);
   return this._data[tileIndex].getFlags();
+};
+
+
+GameMap.prototype.getElevation = function(x, y) {
+  if (typeof(x) === 'object') {
+    y = x.y;
+    x = x.x;
+  }
+
+  if (!this.testBounds(x, y))
+    throw new Error('GameMap getElevation called with invalid bounds ' + x + ', ' + y);
+
+  return this._elevation[this._calculateIndex(x, y)];
+};
+
+
+GameMap.prototype.setElevation = function(x, y, elevation) {
+  if (arguments.length === 2) {
+    elevation = y;
+    y = x.y;
+    x = x.x;
+  }
+
+  if (!this.testBounds(x, y))
+    throw new Error('GameMap setElevation called with invalid bounds ' + x + ', ' + y);
+
+  if (!Number.isInteger(elevation) || elevation < 0 || elevation > GameMap.MAX_ELEVATION)
+    throw new Error('GameMap setElevation called with invalid elevation ' + elevation);
+
+  this._elevation[this._calculateIndex(x, y)] = elevation;
 };
 
 
@@ -390,6 +426,9 @@ GameMap.prototype.putZone = function(centreX, centreY, centreTile, size) {
     }
   }
 };
+
+
+GameMap.MAX_ELEVATION = 15;
 
 
 export { GameMap };

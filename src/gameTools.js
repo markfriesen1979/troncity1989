@@ -16,6 +16,7 @@ import { ParkTool } from './parkTool';
 import { RailTool } from './railTool';
 import { RoadTool } from './roadTool';
 import { QueryTool } from './queryTool';
+import { TerrainTool } from './terrainTool';
 import * as TileValues from "./tileValues";
 import { WireTool } from './wireTool';
 
@@ -36,6 +37,8 @@ function GameTools(map) {
     road: new RoadTool(map),
     query: new QueryTool(map),
     stadium: new BuildingTool(5000, TileValues.STADIUM, map, 4, false),
+    raiseTerrain: new TerrainTool(map, 1),
+    lowerTerrain: new TerrainTool(map, -1),
     wire: new WireTool(map),
   });
 

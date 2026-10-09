@@ -31,6 +31,7 @@ var MapGenerator = function(w, h) {
   if (TERRAIN_CREATE_ISLAND < 0) {
     if (Random.getRandom(100) < 10) {
       makeIsland(map);
+      setElevations(map);
       return map;
     }
   }
@@ -59,7 +60,42 @@ var MapGenerator = function(w, h) {
   if (TERRAIN_TREE_LEVEL !== 0)
       doTrees(map);
 
+  setElevations(map);
   return map;
+};
+
+
+var setElevations = function(map) {
+  var spacing = 12;
+  var gridWidth = Math.ceil(map.width / spacing) + 1;
+  var gridHeight = Math.ceil(map.height / spacing) + 1;
+  var heights = [];
+
+  for (var gy = 0; gy < gridHeight; gy++) {
+    heights[gy] = [];
+    for (var gx = 0; gx < gridWidth; gx++)
+      heights[gy][gx] = Random.getRandom(14);
+  }
+
+  for (var y = 0; y < map.height; y++) {
+    for (var x = 0; x < map.width; x++) {
+      var tile = map.getTileValue(x, y);
+      if (tile >= WATER_LOW && tile <= WATER_HIGH) {
+        map.setElevation(x, y, 0);
+        continue;
+      }
+
+      var gridX = x / spacing;
+      var gridY = y / spacing;
+      var left = Math.floor(gridX);
+      var top = Math.floor(gridY);
+      var xBlend = gridX - left;
+      var yBlend = gridY - top;
+      var topHeight = heights[top][left] * (1 - xBlend) + heights[top][left + 1] * xBlend;
+      var bottomHeight = heights[top + 1][left] * (1 - xBlend) + heights[top + 1][left + 1] * xBlend;
+      map.setElevation(x, y, 1 + Math.round(topHeight * (1 - yBlend) + bottomHeight * yBlend));
+    }
+  }
 };
 
 

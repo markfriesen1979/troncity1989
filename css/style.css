@@ -330,6 +330,11 @@ nav li {
   height: 220px;
 }
 
+#buttons {
+  max-height: 190px;
+  overflow-y: auto;
+}
+
 #debug {
   position: absolute;
   top: 580px;

@@ -13,7 +13,7 @@ import { MiscUtils } from './miscUtils';
 import { MouseBox } from './mouseBox';
 import { Position } from './position';
 import { TileSet } from './tileSet';
-import { TILE_INVALID } from "./tileValues";
+import { DIRT, TILE_INVALID, WATER_HIGH, WATER_LOW, WOODS_HIGH, WOODS_LOW } from "./tileValues";
 
 function GameCanvas(id, parentNode) {
   if (!(this instanceof GameCanvas))
@@ -86,6 +86,7 @@ GameCanvas.prototype.init = function(map, tileSet, spriteSheet, animationManager
 
   // An array indexed by tile offset containing the tileValue last painted there
   this._lastPaintedTiles = null;
+  this._lastPaintedElevations = null;
   this._currentPaintedTiles = []; // for future use
 
   // Last time we painted, the canvas was this many tiles wide and tall
@@ -378,7 +379,7 @@ GameCanvas.prototype._screenshot = function(onlyVisible) {
 
   for (var x = 0; x < this._map.width; x++) {
     for (var y = 0; y < this._map.height; y++) {
-      this._paintOne(ctx, this._map.getTileValue(x, y), x, y);
+      this._paintOne(ctx, this._map.getTileValue(x, y), x, y, this._map.getElevation(x, y));
     }
   }
   return tempCanvas.toDataURL();
@@ -488,7 +489,7 @@ GameCanvas.prototype._paintVoid = function(ctx, x, y) {
 };
 
 
-GameCanvas.prototype._paintOne = function(ctx, tileVal, x, y) {
+GameCanvas.prototype._paintOne = function(ctx, tileVal, x, y, elevation) {
   if (tileVal === TILE_INVALID) {
     this._paintVoid(ctx, x, y);
     return;
@@ -497,6 +498,22 @@ GameCanvas.prototype._paintOne = function(ctx, tileVal, x, y) {
   var src = this._tileSet[tileVal];
   try {
     ctx.drawImage(src, x * this._tileSet.tileWidth, y * this._tileSet.tileWidth);
+    if (elevation > 0 &&
+        (tileVal === DIRT || (tileVal >= WATER_LOW && tileVal <= WATER_HIGH) ||
+         (tileVal >= WOODS_LOW && tileVal <= WOODS_HIGH))) {
+      var elevationBand = Math.min(Math.floor(elevation / 3), 5);
+      var elevationColors = [
+        'rgba(91, 145, 78, 0.12)',
+        'rgba(120, 157, 74, 0.17)',
+        'rgba(155, 152, 93, 0.22)',
+        'rgba(153, 130, 105, 0.28)',
+        'rgba(151, 147, 143, 0.33)',
+        'rgba(245, 245, 245, 0.38)'
+      ];
+      ctx.fillStyle = elevationColors[elevationBand];
+      ctx.fillRect(x * this._tileSet.tileWidth, y * this._tileSet.tileWidth,
+                   this._tileSet.tileWidth, this._tileSet.tileWidth);
+    }
   } catch (e) {
     var mapX = this._originX + x;
     var mapY = this._originY + y;
@@ -505,9 +522,10 @@ GameCanvas.prototype._paintOne = function(ctx, tileVal, x, y) {
 };
 
 
-GameCanvas.prototype._paintTiles = function(ctx, paintData) {
+GameCanvas.prototype._paintTiles = function(ctx, paintData, elevationData) {
   var x, y, row, index;
   var lastPaintedTiles = this._lastPaintedTiles;
+  var lastPaintedElevations = this._lastPaintedElevations;
 
   var width = this._totalTilesInViewX;
   var height = this._totalTilesInViewY;
@@ -526,12 +544,14 @@ GameCanvas.prototype._paintTiles = function(ctx, paintData) {
     // Loop over the common area that we painted last time. Compare the current value against what was there last time
     for (y = 0; y < yBound; y++) {
       for (x = 0; x < xBound; x++) {
-        index  = y * xBound + x;
-        if (lastPaintedTiles[index] === paintData[index])
+        var previousIndex = y * this._lastPaintedWidth + x;
+        index = y * width + x;
+        if (lastPaintedTiles[previousIndex] === paintData[index] &&
+            lastPaintedElevations[previousIndex] === elevationData[index])
           continue;
 
         // Tile is different: repaint
-        this._paintOne(ctx, paintData[index], x, y);
+        this._paintOne(ctx, paintData[index], x, y, elevationData[index]);
       }
     }
 
@@ -540,7 +560,7 @@ GameCanvas.prototype._paintTiles = function(ctx, paintData) {
       for (y = 0; y < height; y++) {
         for (x = this._lastPaintedWidth; x < width; x++) {
           index  = y * width + x;
-          this._paintOne(ctx, paintData[index], x, y);
+          this._paintOne(ctx, paintData[index], x, y, elevationData[index]);
         }
       }
     }
@@ -549,7 +569,7 @@ GameCanvas.prototype._paintTiles = function(ctx, paintData) {
       for (y = this._lastPaintedHeight; y < height; y++) {
         for (x = 0; x < width; x++) {
           index  = y * width + x;
-          this._paintOne(ctx, paintData[index], x, y);
+          this._paintOne(ctx, paintData[index], x, y, elevationData[index]);
         }
       }
     }
@@ -558,7 +578,7 @@ GameCanvas.prototype._paintTiles = function(ctx, paintData) {
     for (y = 0; y < height; y++) {
       for (x = 0; x < width; x++) {
         index = y * width + x;
-        this._paintOne(ctx, paintData[index], x, y);
+        this._paintOne(ctx, paintData[index], x, y, elevationData[index]);
       }
     }
   }
@@ -570,6 +590,7 @@ GameCanvas.prototype._paintTiles = function(ctx, paintData) {
   // Rotate tile data
   var temp = this._lastPaintedTiles;
   this._lastPaintedTiles = paintData;
+  this._lastPaintedElevations = elevationData;
   this._currentPaintedTiles = temp;
 };
 
@@ -609,11 +630,20 @@ GameCanvas.prototype.paint = function(mouse, sprites, isPaused) {
 
   // Fill an array with the values we need to paint
   var tileValues = this._map.getTileValuesForPainting(this._originX, this._originY, paintWidth, paintHeight, this._currentPaintedTiles);
+  var elevations = [];
+  for (y = 0; y < paintHeight; y++) {
+    for (x = 0; x < paintWidth; x++) {
+      var mapX = this._originX + x;
+      var mapY = this._originY + y;
+      elevations[y * paintWidth + x] = this._map.testBounds(mapX, mapY) ?
+        this._map.getElevation(mapX, mapY) : -1;
+    }
+  }
 
   // Adjust for animations
   this.animationManager.getTiles(tileValues, this._originX, this._originY, paintWidth, paintHeight, isPaused);
 
-  this._paintTiles(ctx, tileValues);
+  this._paintTiles(ctx, tileValues, elevations);
   // The _paintTiles call updates this._lastPaintedTiles. Update our cached copy
   lastPaintedTiles = this._lastPaintedTiles;
 
